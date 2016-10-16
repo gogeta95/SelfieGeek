@@ -3,9 +3,11 @@ package android.socialcops.selfiegeek;
 import android.content.Context;
 import android.hardware.Camera;
 import android.media.MediaRecorder;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+
 import java.io.IOException;
 
 /**
@@ -13,32 +15,42 @@ import java.io.IOException;
  */
 
 public class ImageSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
+    public static final String TAG = ImageSurfaceView.class.getSimpleName();
 
     private Camera camera;
     private MediaRecorder mediaRecorder;
-    private SurfaceHolder surfaceHolder;
 
-    public ImageSurfaceView(Context context, Camera camera, MediaRecorder mediaRecorder) {
+    public ImageSurfaceView(Context context) {
         super(context);
+    }
+
+    public ImageSurfaceView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    public ImageSurfaceView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+    }
+
+    public ImageSurfaceView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+    }
+
+    public void enableCallBack(Camera camera, MediaRecorder mediaRecorder) {
         this.camera = camera;
         this.mediaRecorder = mediaRecorder;
-        this.surfaceHolder = getHolder();
-        this.surfaceHolder.addCallback(this);
+        getHolder().addCallback(this);
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        Log.d(TAG, "surfaceCreated: ");
             mediaRecorder.setPreviewDisplay(holder.getSurface());
-            try{
-                this.mediaRecorder.prepare();
-            } catch (Exception e) {
-                String message = e.getMessage();
-                Log.e("MediaRecorder",message);
-            }
 
             try {
-                this.camera.setPreviewDisplay(holder);
-                this.camera.startPreview();
+                camera.lock();
+                camera.setPreviewDisplay(holder);
+                camera.startPreview();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -46,7 +58,7 @@ public class ImageSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
+        Log.d(TAG, "surfaceChanged: ");
     }
 
     @Override
@@ -54,5 +66,6 @@ public class ImageSurfaceView extends SurfaceView implements SurfaceHolder.Callb
             this.mediaRecorder.release();
             this.camera.stopPreview();
             this.camera.release();
+        Log.d(TAG, "surfaceDestroyed: ");
     }
 }

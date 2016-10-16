@@ -1,7 +1,6 @@
 package android.socialcops.selfiegeek;
 
 import android.content.Context;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.support.v7.widget.RecyclerView;
@@ -19,24 +18,13 @@ import java.util.ArrayList;
 
 public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.ViewHolder> {
 
-    private ArrayList<String> imageList;
     private final Context context;
+    private ArrayList<String> imageList;
 
     public GalleryAdapter(ArrayList<String> imageList, Context context) {
-        this.imageList = imageList;
+        this.imageList = imageList == null ? new ArrayList<String>() : imageList;
         this.context = context;
     }
-
-    public class ViewHolder extends RecyclerView.ViewHolder {
-
-        public ImageView cameraImage;
-
-        public ViewHolder(View itemView) {
-            super(itemView);
-            cameraImage = (ImageView) itemView.findViewById(R.id.image);
-        }
-    }
-
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -72,7 +60,17 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.ViewHold
     }
 
     public void swapImages(ArrayList<String> data){
-        imageList = data;
+        imageList = data == null ? new ArrayList<String>() : data;
         notifyDataSetChanged();
+    }
+
+    public class ViewHolder extends RecyclerView.ViewHolder {
+
+        public ImageView cameraImage;
+
+        public ViewHolder(View itemView) {
+            super(itemView);
+            cameraImage = (ImageView) itemView.findViewById(R.id.image);
+        }
     }
 }

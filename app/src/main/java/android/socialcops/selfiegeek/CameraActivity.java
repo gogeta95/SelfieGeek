@@ -1,11 +1,10 @@
 package android.socialcops.selfiegeek;
 
 import android.hardware.Camera;
-import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
+import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -18,76 +17,16 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
-
 public class CameraActivity extends AppCompatActivity {
 
     private ImageSurfaceView mImageSurfaceView;
     private Camera camera;
     private String DEBUG_TAG = MainActivity.class.getSimpleName();
-    private MediaRecorder mediaRecorder;
-    private boolean isRecording = false;
-
-    private FrameLayout cameraPreviewLayout;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_camera);
-
-        cameraPreviewLayout = (FrameLayout)findViewById(R.id.camera_preview);
-
-        camera = checkDeviceCamera();
-        mediaRecorder = prepareVideoRecorder(camera);
-
-        mImageSurfaceView = new ImageSurfaceView(CameraActivity.this, camera, mediaRecorder);
-        cameraPreviewLayout.addView(mImageSurfaceView);
-
-        ImageButton captureButton = (ImageButton) findViewById(R.id.button);
-        captureButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                camera.startPreview();
-                camera.takePicture(null, null, pictureCallback);
-            }
-        });
-
-        final ImageButton videoButton = (ImageButton) findViewById(R.id.video_button);
-        videoButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(isRecording){
-                    isRecording=false;
-                    mediaRecorder.stop();
-                    releaseMediaRecorder();
-                    camera.lock();
-                    videoButton.setImageResource(R.mipmap.ic_start);
-
-                }else {
-                    isRecording=true;
-                    mediaRecorder.start();
-                    videoButton.setImageResource(R.mipmap.ic_stop);
-
-                }
-            }
-        });
-    }
-    private Camera checkDeviceCamera(){
-        Camera mCamera = null;
-        try {
-            mCamera = Camera.open();
-            mCamera.setDisplayOrientation(90);
-        } catch (Exception e) {
-            Log.e("Camera",e.getMessage());
-        }
-        return mCamera;
-    }
-
     Camera.PictureCallback pictureCallback = new Camera.PictureCallback() {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
             File pictureFileDir = getDir();
-
+            Log.d(DEBUG_TAG, "onPictureTaken:");
             if (!pictureFileDir.exists() && !pictureFileDir.mkdirs()) {
 
                 Log.d(DEBUG_TAG, "Can't create directory to save image.");
@@ -117,29 +56,100 @@ public class CameraActivity extends AppCompatActivity {
                 Toast.makeText(CameraActivity.this, "Image could not be saved.",
                         Toast.LENGTH_LONG).show();
             }
+
         }
     };
+    private MediaRecorder mediaRecorder;
+    private boolean isRecording = false;
+    private FrameLayout cameraPreviewLayout;
 
     public static File getDir() {
         File sdDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         return new File(sdDir, "CameraAPIDemo");
     }
 
-    private MediaRecorder prepareVideoRecorder(Camera mCamera){
-        MediaRecorder mMediaRecorder = new MediaRecorder();
-        mCamera.unlock();
-        mMediaRecorder.setCamera(mCamera);
-        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.DEFAULT);
-        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.MPEG_4_SP);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_camera);
+
+        cameraPreviewLayout = (FrameLayout)findViewById(R.id.camera_preview);
+
+        camera = checkDeviceCamera();
+        prepareVideoRecorder(camera);
+
+        mImageSurfaceView = (ImageSurfaceView) findViewById(R.id.image_surface);
+        mImageSurfaceView.enableCallBack(camera, mediaRecorder);
+
+        final ImageButton captureButton = (ImageButton) findViewById(R.id.button);
+        captureButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                camera.startPreview();
+                Log.d(DEBUG_TAG, "onClick: Picture");
+                camera.takePicture(null, null, pictureCallback);
+            }
+        });
+
+        final ImageButton videoButton = (ImageButton) findViewById(R.id.video_button);
+        videoButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(isRecording){
+                    Log.d(DEBUG_TAG, "isRecording: " + isRecording);
+                    isRecording=false;
+                    mediaRecorder.stop();
+                    releaseMediaRecorder();
+                    prepareVideoRecorder(camera);
+                    videoButton.setImageResource(R.mipmap.ic_start);
+
+                }else {
+                    try {
+                        Log.d(DEBUG_TAG, "isRecording: " + isRecording);
+                        mediaRecorder.prepare();
+                        isRecording = true;
+                        camera.unlock();
+                        camera.stopPreview();
+                        mediaRecorder.start();
+                        videoButton.setImageResource(R.mipmap.ic_stop);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        });
+    }
+
+    private Camera checkDeviceCamera(){
+        Camera mCamera = null;
+        try {
+            mCamera = Camera.open();
+            mCamera.setDisplayOrientation(90);
+        } catch (Exception e) {
+            Log.e("Camera",e.getMessage());
+        }
+        return mCamera;
+    }
+
+    private void prepareVideoRecorder(Camera mCamera) {
+        Log.d(DEBUG_TAG, "prepareVideoRecorder: ");
+        if (mediaRecorder == null) {
+            mediaRecorder = new MediaRecorder();
+        }
+//        mCamera.unlock();
+        mediaRecorder.setCamera(mCamera);
+        mediaRecorder.setVideoSource(MediaRecorder.VideoSource.DEFAULT);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.MPEG_4_SP);
         //mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
 //        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.DEFAULT);
 //        mMediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH));
-        mMediaRecorder.setOutputFile(getOutputMediaFile());
-        return mMediaRecorder;
+        mediaRecorder.setOutputFile(getOutputMediaFile());
     }
 
     private void releaseMediaRecorder(){
+        Log.d(DEBUG_TAG, "releaseMediaRecorder: ");
         if (mediaRecorder != null) {
             mediaRecorder.reset();   // clear recorder configuration
             mediaRecorder.release(); // release the recorder object
@@ -149,6 +159,7 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private String getOutputMediaFile(){
+        Log.d(DEBUG_TAG, "getOutputMediaFile: ");
         File pictureFileDir = getDir();
 
         if (!pictureFileDir.exists() && !pictureFileDir.mkdirs()) {
